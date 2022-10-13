@@ -21,8 +21,6 @@ using PeterHan.PLib.Core;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-
-using ConduitFlowMesh = ConduitFlowVisualizer.ConduitFlowMesh;
 using TranspiledMethod = System.Collections.Generic.IEnumerable<HarmonyLib.CodeInstruction>;
 
 namespace PeterHan.FastTrack.ConduitPatches {
@@ -119,10 +117,12 @@ namespace PeterHan.FastTrack.ConduitPatches {
 				visualizer.UpdateLayerAndPosition(position, layer);
 		}
 
-		/// <summary>
-		/// Applied to ConduitFlowMesh to destroy the renderer when it dies.
-		/// </summary>
-		[HarmonyPatch(typeof(ConduitFlowMesh), nameof(ConduitFlowMesh.Cleanup))]
+        /// <summary>
+        /// Applied to ConduitFlowMesh to destroy the renderer when it dies.
+        /// </summary>
+        /// ConduitFlowVisualizer.GetType().GetNestedType("ConduitFlowMesh")
+        [HarmonyPatchStringType("ConduitFlowVisualizer.ConduitFlowMesh")]
+        [HarmonyPatch("Cleanup")]
 		internal static class Cleanup_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.MeshRendererOptions !=
 				FastTrackOptions.MeshRendererSettings.None;
@@ -139,10 +139,18 @@ namespace PeterHan.FastTrack.ConduitPatches {
 			}
 		}
 
-		/// <summary>
-		/// Applied to ConduitFlowMesh to create the renderer when it is created.
-		/// </summary>
-		[HarmonyPatch(typeof(ConduitFlowMesh), MethodType.Constructor, new Type[0])]
+        public class HarmonyPatchStringTypeAttribute : HarmonyPatch
+        {
+            public HarmonyPatchStringTypeAttribute(string typeName) : base(AccessTools.TypeByName(typeName))
+            {
+            }
+        }
+
+        /// <summary>
+        /// Applied to ConduitFlowMesh to create the renderer when it is created.
+        /// </summary>
+        [HarmonyPatchStringType("ConduitFlowVisualizer.ConduitFlowMesh")]
+		[HarmonyPatch(MethodType.Constructor)]
 		internal static class Constructor_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.MeshRendererOptions !=
 				FastTrackOptions.MeshRendererSettings.None;
@@ -150,8 +158,9 @@ namespace PeterHan.FastTrack.ConduitPatches {
 			/// <summary>
 			/// Applied after the constructor runs.
 			/// </summary>
-			internal static void Postfix(ConduitFlowMesh __instance) {
-				var mesh = __instance.mesh;
+
+			internal static void Postfix(dynamic __instance) {
+                var mesh = __instance.mesh;
 				if (mesh != null) {
 					// Destroy the existing renderer if it exists
 					if (visualizers.TryGetValue(mesh, out ConduitMeshVisualizer visualizer))
@@ -162,10 +171,11 @@ namespace PeterHan.FastTrack.ConduitPatches {
 			}
 		}
 
-		/// <summary>
-		/// Applied to ConduitFlowMesh to remove the DrawMesh call.
-		/// </summary>
-		[HarmonyPatch(typeof(ConduitFlowMesh), nameof(ConduitFlowMesh.End))]
+        /// <summary>
+        /// Applied to ConduitFlowMesh to remove the DrawMesh call.
+        /// </summary>
+        [HarmonyPatchStringType("ConduitFlowVisualizer.ConduitFlowMesh")]
+        [HarmonyPatch("End")]
 		internal static class End_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.MeshRendererOptions !=
 				FastTrackOptions.MeshRendererSettings.None;

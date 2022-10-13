@@ -75,7 +75,7 @@ namespace PeterHan.FastTrack {
 			runAmbience = true;
 		}
 
-		public override void OnSpawn() {
+		protected override void OnSpawn() {
 			base.OnSpawn();
 			runAmbience = false;
 			runMix = false;
@@ -96,7 +96,7 @@ namespace PeterHan.FastTrack {
 		/// Applied to AmbienceManager to reduce its updates to the same speed as sound
 		/// updates.
 		/// </summary>
-		[HarmonyPatch(typeof(AmbienceManager), nameof(AmbienceManager.LateUpdate))]
+		[HarmonyPatch(typeof(AmbienceManager), "LateUpdate")]
 		public static class AmbienceManagerUpdater {
 			internal static bool Prepare() {
 				var options = FastTrackOptions.Instance;
@@ -142,7 +142,7 @@ namespace PeterHan.FastTrack {
 		/// <summary>
 		/// Applied to MixManager to reduce sound updates to 5 FPS.
 		/// </summary>
-		[HarmonyPatch(typeof(MixManager), nameof(MixManager.Update))]
+		[HarmonyPatch(typeof(MixManager), "Update")]
 		public static class MixManagerUpdater {
 			internal static bool Prepare() {
 				var options = FastTrackOptions.Instance;
@@ -198,7 +198,7 @@ namespace PeterHan.FastTrack {
 	/// Applied to NotificationScreen to suppress sounds queued very early in the load.
 	/// sequence.
 	/// </summary>
-	[HarmonyPatch(typeof(NotificationScreen), nameof(NotificationScreen.PlayDingSound))]
+	[HarmonyPatch(typeof(NotificationScreen), "PlayDingSound")]
 	public static class NotificationScreen_PlayDingSound_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.ReduceSoundUpdates;
 
@@ -249,20 +249,16 @@ namespace PeterHan.FastTrack {
 		internal static bool Prepare() => FastTrackOptions.Instance.DisableSound;
 
 		internal static IEnumerable<MethodBase> TargetMethods() {
-			yield return typeof(AnimEventManager).GetMethodSafe(nameof(AnimEventManager.
-				PlayEvents), false, PPatchTools.AnyArguments);
-			yield return typeof(AnimEventManager).GetMethodSafe(nameof(AnimEventManager.
-				StopEvents), false, PPatchTools.AnyArguments);
+			yield return typeof(AnimEventManager).GetMethodSafe("PlayEvents", false, PPatchTools.AnyArguments);
+			yield return typeof(AnimEventManager).GetMethodSafe("StopEvents", false, PPatchTools.AnyArguments);
 			yield return typeof(AudioMixer).GetMethodSafe(nameof(AudioMixer.
 				SetSnapshotParameter), false, PPatchTools.AnyArguments);
 			yield return typeof(AudioMixer).GetMethodSafe(nameof(AudioMixer.Start), false,
 				PPatchTools.AnyArguments);
 			yield return typeof(AudioMixer).GetMethodSafe(nameof(AudioMixer.Stop), false,
 				PPatchTools.AnyArguments);
-			yield return typeof(ConduitFlowVisualizer).GetMethodSafe(nameof(
-				ConduitFlowVisualizer.AddAudioSource), false, PPatchTools.AnyArguments);
-			yield return typeof(ConduitFlowVisualizer).GetMethodSafe(nameof(
-				ConduitFlowVisualizer.TriggerAudio), false, PPatchTools.AnyArguments);
+			yield return typeof(ConduitFlowVisualizer).GetMethodSafe("AddAudioSource", false, PPatchTools.AnyArguments);
+			yield return typeof(ConduitFlowVisualizer).GetMethodSafe("TriggerAudio", false, PPatchTools.AnyArguments);
 			yield return typeof(MusicManager).GetMethodSafe(nameof(MusicManager.StopSong),
 				false, PPatchTools.AnyArguments);
 			yield return typeof(KFMOD).GetMethodSafe(nameof(KFMOD.CreateInstance), true,
@@ -271,10 +267,8 @@ namespace PeterHan.FastTrack {
 				PPatchTools.AnyArguments);
 			yield return typeof(KFMOD).GetMethodSafe(nameof(KFMOD.RenderEveryTick), true,
 				PPatchTools.AnyArguments);
-			yield return typeof(SolidConduitFlowVisualizer).GetMethodSafe(nameof(
-				SolidConduitFlowVisualizer.AddAudioSource), false, PPatchTools.AnyArguments);
-			yield return typeof(SolidConduitFlowVisualizer).GetMethodSafe(nameof(
-				SolidConduitFlowVisualizer.TriggerAudio), false, PPatchTools.AnyArguments);
+			yield return typeof(SolidConduitFlowVisualizer).GetMethodSafe("AddAudioSource", false, PPatchTools.AnyArguments);
+			yield return typeof(SolidConduitFlowVisualizer).GetMethodSafe("TriggerAudio", false, PPatchTools.AnyArguments);
 			yield return typeof(SoundEvent).GetMethodSafe(nameof(SoundEvent.PlaySound), false,
 				typeof(AnimEventManager.EventPlayerData), typeof(string));
 		}

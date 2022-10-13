@@ -20,10 +20,9 @@ using HarmonyLib;
 using PeterHan.PLib.Core;
 using System.Collections.Generic;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using UnityEngine;
-
-using ConduitFlowMesh = ConduitFlowVisualizer.ConduitFlowMesh;
-using RenderMeshTask = ConduitFlowVisualizer.RenderMeshTask;
+using static PeterHan.FastTrack.ConduitPatches.ConduitFlowMeshPatches;
 using TranspiledMethod = System.Collections.Generic.IEnumerable<HarmonyLib.CodeInstruction>;
 
 namespace PeterHan.FastTrack.ConduitPatches {
@@ -91,7 +90,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 		/// <param name="flowMesh">The mesh to draw.</param>
 		/// <param name="z">The z coordinate to render the mesh.</param>
 		/// <param name="layer">The layer for rendering.</param>
-		private static void DrawMesh(ConduitFlowMesh flowMesh, float z, int layer) {
+		private static void DrawMesh(dynamic flowMesh, float z, int layer) {
 			if (flowMesh != null)
 				Graphics.DrawMesh(flowMesh.mesh, new Vector3(0.5f, 0.5f, z - 0.1f), Quaternion.
 					identity, flowMesh.material, layer);
@@ -131,7 +130,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 		/// <summary>
 		/// Applied before Render runs.
 		/// </summary>
-		internal static bool Prefix(ConduitFlowVisualizer __instance, float z) {
+		internal static bool Prefix(ConduitFlowVisualizer __instance, float z, ref bool ___showContents, ref double ___animTime, int ___layer, dynamic ___movingBallMesh, dynamic ___staticBallMesh) {
 			double now = Time.unscaledTime, calcUpdateRate = updateRate;
 			var cc = CameraController.Instance;
 			bool update = true;
@@ -148,14 +147,14 @@ namespace PeterHan.FastTrack.ConduitPatches {
 				if (update)
 					NEXT_UPDATE[__instance] = now + calcUpdateRate;
 			}
-			update |= __instance.showContents;
+			update |= ___showContents;
 			// If not updating, render the last mesh
 			if (!update) {
-				__instance.animTime += Time.deltaTime;
+                ___animTime += Time.deltaTime;
 				if (!USE_MESH) {
-					int layer = __instance.layer;
-					DrawMesh(__instance.movingBallMesh, z, layer);
-					DrawMesh(__instance.staticBallMesh, z, layer);
+					int layer = ___layer;
+					DrawMesh(___movingBallMesh, z, layer);
+					DrawMesh(___staticBallMesh, z, layer);
 				}
 			}
 			return update;
@@ -165,7 +164,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 	/// <summary>
 	/// Applied to ConduitFlowVisualizer to save some math when calculating conduit flow.
 	/// </summary>
-	[HarmonyPatch(typeof(ConduitFlowVisualizer), nameof(ConduitFlowVisualizer.RenderMesh))]
+	[HarmonyPatch(typeof(ConduitFlowVisualizer), "RenderMesh")]
 	public static class ConduitFlowVisualizer_RenderMesh_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.RenderTicks;
 
@@ -204,7 +203,8 @@ namespace PeterHan.FastTrack.ConduitPatches {
 	/// Applied to ConduitFlowVisualizer.RenderMeshTask.ctor to fix a call that excessively
 	/// allocates memory.
 	/// </summary>
-	[HarmonyPatch(typeof(RenderMeshTask), MethodType.Constructor, typeof(int), typeof(int))]
+	[HarmonyPatchStringType("ConduitFlowVisualizer.RenderMeshTask")]
+	[HarmonyPatch(MethodType.Constructor, typeof(int), typeof(int))]
 	public static class ConduitFlowVisualizer_RenderMeshConstructor_Patch {
 		/// <summary>
 		/// Resizes a list only if needed.
@@ -221,7 +221,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 		/// </summary>
 		/// <param name="list">The list to resize.</param>
 		/// <param name="capacity">The new list capacity.</param>
-		private static void SetCapacity(List<RenderMeshTask.Ball> list, int capacity) {
+		private static void SetCapacity(List<dynamic> list, int capacity) {
 			if (capacity > list.Capacity)
 				list.Capacity = capacity;
 		}
@@ -233,13 +233,13 @@ namespace PeterHan.FastTrack.ConduitPatches {
 				ILGenerator generator) {
 			var resizeConduits = typeof(List<>).MakeGenericType(typeof(ConduitFlow.Conduit)).
 				GetPropertySafe<int>(nameof(List<int>.Capacity), false);
-			var resizeBalls = typeof(List<RenderMeshTask.Ball>).GetPropertySafe<int>(
+			var resizeBalls = typeof(List<dynamic>).GetPropertySafe<int>(
 				nameof(List<int>.Capacity), false);
 			var targetConduits = typeof(ConduitFlowVisualizer_RenderMeshConstructor_Patch).
 				GetMethodSafe(nameof(SetCapacity), true, typeof(List<ConduitFlow.Conduit>),
 				typeof(int));
 			var targetBalls = typeof(ConduitFlowVisualizer_RenderMeshConstructor_Patch).
-				GetMethodSafe(nameof(SetCapacity), true, typeof(List<RenderMeshTask.Ball>),
+				GetMethodSafe(nameof(SetCapacity), true, typeof(List<dynamic>),
 				typeof(int));
 			bool patched = false;
 			if (resizeBalls != null && resizeConduits != null && targetConduits != null) {

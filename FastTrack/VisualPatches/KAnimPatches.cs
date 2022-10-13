@@ -82,7 +82,7 @@ namespace PeterHan.FastTrack.VisualPatches {
 	/// <summary>
 	/// Applied to KAnimControllerBase to make trivial anims stop triggering updates.
 	/// </summary>
-	[HarmonyPatch(typeof(KAnimControllerBase), nameof(KAnimControllerBase.StartQueuedAnim))]
+	[HarmonyPatch(typeof(KAnimControllerBase), "StartQueuedAnim")]
 	public static class KAnimControllerBase_StartQueuedAnim_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.AnimOpts;
 

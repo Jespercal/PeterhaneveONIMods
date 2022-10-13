@@ -33,10 +33,10 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// </summary>
 		/// <param name="instance">The screen to update.</param>
 		private static void ForceUpdate(LogicBitSelectorSideScreen instance) {
-			var target = instance.target;
-			var activeColor = instance.activeColor;
-			var inactiveColor = instance.inactiveColor;
-			var lv = LAST_VALUES;
+			var target = (ILogicRibbonBitSelector)instance.GetType().GetField("target", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(instance);
+			var activeColor = (Color)instance.GetType().GetField("activeColor", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(instance);
+            var inactiveColor = (Color)instance.GetType().GetField("inactiveColor", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(instance);
+            var lv = LAST_VALUES;
 			lv.Clear();
 			foreach (var pair in instance.toggles_by_int) {
 				int bit = pair.Key;
@@ -68,8 +68,7 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// (because side screens can have targets set for the first time before they are
 		/// initialized).
 		/// </summary>
-		[HarmonyPatch(typeof(LogicBitSelectorSideScreen), nameof(LogicBitSelectorSideScreen.
-			OnSpawn))]
+		[HarmonyPatch(typeof(LogicBitSelectorSideScreen), "OnSpawn")]
 		public static class OnSpawn_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.SideScreenOpts;
 
@@ -78,7 +77,7 @@ namespace PeterHan.FastTrack.UIPatches {
 			/// </summary>
 			internal static void Postfix(LogicBitSelectorSideScreen __instance) {
 				if (__instance != null)
-					__instance.UpdateInputOutputDisplay();
+					__instance.GetType().GetMethod("UpdateInputOutputDisplay", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(__instance, new object[] { });
 				ForceUpdate(__instance);
 			}
 		}
@@ -87,8 +86,7 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// Applied to LogicBitSelectorSideScreen to set the initial states of lastValues
 		/// for each bit.
 		/// </summary>
-		[HarmonyPatch(typeof(LogicBitSelectorSideScreen), nameof(LogicBitSelectorSideScreen.
-			RefreshToggles))]
+		[HarmonyPatch(typeof(LogicBitSelectorSideScreen), "RefreshToggles")]
 		public static class RefreshToggles_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.SideScreenOpts;
 
@@ -112,10 +110,10 @@ namespace PeterHan.FastTrack.UIPatches {
 			/// <summary>
 			/// Applied before RenderEveryTick runs.
 			/// </summary>
-			internal static bool Prefix(LogicBitSelectorSideScreen __instance) {
+			internal static bool Prefix(LogicBitSelectorSideScreen __instance, ILogicRibbonBitSelector ___target, Color ___activeColor, Color ___inactiveColor) {
 				ILogicRibbonBitSelector target;
 				if (__instance != null && __instance.isActiveAndEnabled && (target =
-						__instance.target) != null)
+                        ___target) != null)
 					foreach (var pair in __instance.toggles_by_int) {
 						int bit = pair.Key;
 						bool active = target.IsBitActive(bit), update = bit >= LAST_VALUES.
@@ -127,8 +125,7 @@ namespace PeterHan.FastTrack.UIPatches {
 								LAST_VALUES[bit] = active;
 						}
 						if (update)
-							UpdateBit(pair.Value, active, __instance.activeColor, __instance.
-								inactiveColor);
+							UpdateBit(pair.Value, active, ___activeColor, ___inactiveColor);
 					}
 				return false;
 			}
@@ -153,18 +150,17 @@ namespace PeterHan.FastTrack.UIPatches {
 	/// <summary>
 	/// Applied to TreeFilterableSideScreen to only update the All checkbox if it changes.
 	/// </summary>
-	[HarmonyPatch(typeof(TreeFilterableSideScreen), nameof(TreeFilterableSideScreen.
-		UpdateAllCheckBoxVisualState))]
+	[HarmonyPatch(typeof(TreeFilterableSideScreen), "UpdateAllCheckBoxVisualState")]
 	public static class TreeFilterableSideScreen_UpdateAllCheckBoxVisualState_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.SideScreenOpts;
 
 		/// <summary>
 		/// Applied before UpdateAllCheckBoxVisualState runs.
 		/// </summary>
-		internal static bool Prefix(TreeFilterableSideScreen __instance) {
-			var cb = __instance.allCheckBox;
+		internal static bool Prefix(TreeFilterableSideScreen __instance, MultiToggle ___allCheckBox, ref bool ___visualDirty) {
+			var cb = ___allCheckBox;
 			var currentState = cb.CurrentState;
-			switch (__instance.GetAllCheckboxState()) {
+			switch ((TreeFilterableSideScreenRow.State)__instance.GetType().GetMethod("GetAllCheckboxState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(__instance, new object[] { })) {
 			case TreeFilterableSideScreenRow.State.Off:
 				if (currentState != 0)
 					cb.ChangeState(0);
@@ -178,7 +174,7 @@ namespace PeterHan.FastTrack.UIPatches {
 					cb.ChangeState(2);
 				break;
 			}
-			__instance.visualDirty = false;
+            ___visualDirty = false;
 			return false;
 		}
 	}
@@ -194,8 +190,8 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// <summary>
 		/// Applied before UpdateCheckBoxVisualState runs.
 		/// </summary>
-		internal static bool Prefix(TreeFilterableSideScreenRow __instance) {
-			var cb = __instance.checkBoxToggle;
+		internal static bool Prefix(TreeFilterableSideScreenRow __instance, MultiToggle ___checkBoxToggle) {
+			var cb = ___checkBoxToggle;
 			int targetState = (int)__instance.GetState();
 			if (targetState != cb.CurrentState)
 				cb.ChangeState(targetState);

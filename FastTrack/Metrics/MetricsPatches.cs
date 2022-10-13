@@ -31,8 +31,7 @@ namespace PeterHan.FastTrack.Metrics {
 	/// <summary>
 	/// Applied to BrainScheduler.BrainGroup to dump load balancing statistics.
 	/// </summary>
-	[HarmonyPatch(typeof(BrainScheduler.BrainGroup), nameof(BrainScheduler.BrainGroup.
-		AdjustLoad))]
+	[HarmonyPatch(typeof(BrainScheduler.BrainGroup), "AdjustLoad")]
 	public static class BrainScheduler_BrainGroup_AdjustLoad_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.Metrics;
 
@@ -94,7 +93,7 @@ namespace PeterHan.FastTrack.Metrics {
 		}
 
 		internal static IEnumerable<MethodBase> TargetMethods() {
-			return FindTargets(nameof(Game.Update));
+			return FindTargets("Update");
 		}
 
 		[HarmonyPriority(Priority.High)]
@@ -118,7 +117,7 @@ namespace PeterHan.FastTrack.Metrics {
 		internal static bool Prepare() => FastTrackOptions.Instance.Metrics;
 
 		internal static IEnumerable<MethodBase> TargetMethods() {
-			return ProfileUpdates.FindTargets(nameof(Game.LateUpdate));
+			return ProfileUpdates.FindTargets("LateUpdate");
 		}
 
 		[HarmonyPriority(Priority.High)]

@@ -37,7 +37,7 @@ namespace PeterHan.FastTrack {
 		internal static void Profile(Harmony harmony) {
 			//harmony.Profile(typeof(KAnimBatchManager), nameof(KAnimBatchManager.UpdateDirty));
 			//harmony.Profile(typeof(KBatchedAnimUpdater), nameof(KBatchedAnimUpdater.UpdateRegisteredAnims));
-			harmony.Profile(typeof(Game), nameof(Game.UnsafeSim200ms));
+			harmony.Profile(typeof(Game), "UnsafeSim200ms");
 			harmony.Profile(typeof(ConduitFlow), nameof(ConduitFlow.Sim200ms));
 			harmony.Profile(typeof(EnergySim), nameof(EnergySim.EnergySim200ms));
 		}
@@ -188,7 +188,7 @@ namespace PeterHan.FastTrack {
 		public override void OnLoad(Harmony harmony) {
 			base.OnLoad(harmony);
 			var options = FastTrackOptions.Instance;
-			int overrideCoreCount = TuningData<CPUBudget.Tuning>.Get().overrideCoreCount,
+			int overrideCoreCount = CPUBudget.coreCount,
 				coreCount = UnityEngine.SystemInfo.processorCount;
 			PUtil.InitLibrary();
 			LocString.CreateLocStringKeys(typeof(FastTrackStrings.UI));
@@ -207,9 +207,9 @@ namespace PeterHan.FastTrack {
 			if (options.MiscOpts)
 				PRegistry.PutData("Bugs.ElementTagInDetailsScreen", true);
 			// This patch is Windows only apparently
-			var target = typeof(Global).GetMethodSafe(nameof(Global.TestDataLocations), false);
+			var target = typeof(Global).GetMethodSafe("TestDataLocations", false);
 			if (options.MiscOpts && target != null && typeof(Global).GetFieldSafe(
-					nameof(Global.saveFolderTestResult), true) != null) {
+                    "saveFolderTestResult", true) != null) {
 				harmony.Patch(target, prefix: new HarmonyMethod(typeof(FastTrackMod),
 					nameof(RemoveTestDataLocations)));
 #if DEBUG
@@ -219,7 +219,7 @@ namespace PeterHan.FastTrack {
 				PUtil.LogDebug("Skipping TestDataLocations patch");
 			// Another potentially Windows only patch
 			target = typeof(Game).Assembly.GetType(nameof(InitializeCheck), false)?.
-				GetMethodSafe(nameof(InitializeCheck.CheckForSavePathIssue), false);
+				GetMethodSafe("CheckForSavePathIssue", false);
 			if (options.MiscOpts && target != null) {
 				harmony.Patch(target, prefix: new HarmonyMethod(typeof(FastTrackMod),
 					nameof(SkipInitCheck)));

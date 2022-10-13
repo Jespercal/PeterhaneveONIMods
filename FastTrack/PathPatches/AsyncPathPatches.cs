@@ -30,8 +30,7 @@ namespace PeterHan.FastTrack.PathPatches {
 	/// Applied to BrainScheduler.BrainGroup to move the path probe updates to a fully
 	/// asychronous task.
 	/// </summary>
-	[HarmonyPatch(typeof(BrainScheduler.BrainGroup), nameof(BrainScheduler.BrainGroup.
-		AsyncPathProbe))]
+	[HarmonyPatch(typeof(BrainScheduler.BrainGroup), "AsyncPathProbe")]
 	internal static class BrainScheduler_BrainGroup_AsyncPathProbe_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.AsyncPathProbe;
 
@@ -68,7 +67,7 @@ namespace PeterHan.FastTrack.PathPatches {
 	/// Applied to BrainScheduler to initialize the singleton instance with the current
 	/// Duplicant brain group.
 	/// </summary>
-	[HarmonyPatch(typeof(BrainScheduler), nameof(BrainScheduler.OnPrefabInit))]
+	[HarmonyPatch(typeof(BrainScheduler), "OnPrefabInit")]
 	internal static class BrainScheduler_OnPrefabInit_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.PickupOpts;
 
@@ -90,12 +89,12 @@ namespace PeterHan.FastTrack.PathPatches {
 	internal static class BrainScheduler_RenderEveryTick_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.PickupOpts;
 
-		internal static bool Prefix(BrainScheduler __instance) {
-			bool asyncProbe = __instance.isAsyncPathProbeEnabled;
+		internal static bool Prefix(BrainScheduler __instance, List<BrainScheduler.BrainGroup> ___brainGroups) {
+			bool asyncProbe = (bool)__instance.GetType().GetProperty("isAsyncPathProbeEnabled", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
 			var inst = AsyncBrainGroupUpdater.Instance;
 			if (!Game.IsQuitting() && !KMonoBehaviour.isLoadingScene && inst != null) {
 				inst.StartBrainCollect();
-				foreach (var brainGroup in __instance.brainGroups)
+				foreach (var brainGroup in ___brainGroups)
 					UpdateBrainGroup(inst, asyncProbe, brainGroup);
 				inst.EndBrainCollect();
 			}
@@ -116,7 +115,7 @@ namespace PeterHan.FastTrack.PathPatches {
 			int n = brains.Count;
 			if (n > 0) {
 				int index = brainGroup.nextUpdateBrain % n;
-				for (int i = brainGroup.InitialProbeCount(); i > 0; i--) {
+				for (int i = (int)brainGroup.GetType().GetProperty("InitialProbeCount", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(brainGroup); i > 0; i--) {
 					var brain = brains[index];
 					if (brain.IsRunning()) {
 						// Add minion and rover brains to the brain scheduler
@@ -194,7 +193,7 @@ namespace PeterHan.FastTrack.PathPatches {
 	/// <summary>
 	/// Applied to ScenePartitioner to make the Add family of methods partially thread safe.
 	/// </summary>
-	[HarmonyPatch(typeof(ScenePartitioner), nameof(ScenePartitioner.Insert))]
+	[HarmonyPatch(typeof(ScenePartitioner), "Insert")]
 	public static class ScenePartitioner_Insert_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.PickupOpts;
 
@@ -250,7 +249,7 @@ namespace PeterHan.FastTrack.PathPatches {
 	/// <summary>
 	/// Applied to ScenePartitioner to make the Free family of methods partially thread safe.
 	/// </summary>
-	[HarmonyPatch(typeof(ScenePartitioner), nameof(ScenePartitioner.Widthdraw))]
+	[HarmonyPatch(typeof(ScenePartitioner), "Widthdraw")]
 	public static class ScenePartitioner_Widthdraw_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.PickupOpts;
 
@@ -284,7 +283,7 @@ namespace PeterHan.FastTrack.PathPatches {
 	/// <summary>
 	/// Applied to Storage to remove it from the cache when it is destroyed.
 	/// </summary>
-	[HarmonyPatch(typeof(Storage), nameof(Storage.OnCleanUp))]
+	[HarmonyPatch(typeof(Storage), "OnCleanUp")]
 	public static class Storage_OnCleanUp_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.PickupOpts;
 

@@ -23,7 +23,7 @@ namespace PeterHan.FastTrack {
 	/// <summary>
 	/// Applied to Game to start the second phase of conduit updates.
 	/// </summary>
-	[HarmonyPatch(typeof(Game), nameof(Game.LateUpdate))]
+	[HarmonyPatch(typeof(Game), "LateUpdate")]
 	[HarmonyPriority(Priority.Low)]
 	public static class Game_LateUpdate_Patch {
 		internal static bool Prepare() => !FastTrackOptions.Instance.ConduitOpts &&
@@ -46,7 +46,7 @@ namespace PeterHan.FastTrack {
 	/// Applied to Game to start property texture updates after Sim data arrives and
 	/// fast Reachability updates before the sim cycle starts.
 	/// </summary>
-	[HarmonyPatch(typeof(Game), nameof(Game.Update))]
+	[HarmonyPatch(typeof(Game), "Update")]
 	public static class Game_Update_Patch {
 		internal static bool Prepare() {
 			var options = FastTrackOptions.Instance;
@@ -92,7 +92,7 @@ namespace PeterHan.FastTrack {
 	/// 
 	/// XXX: There are only a few mask layers left!
 	/// </summary>
-	[HarmonyPatch(typeof(GameScenePartitioner), nameof(GameScenePartitioner.OnPrefabInit))]
+	[HarmonyPatch(typeof(GameScenePartitioner), "OnPrefabInit")]
 	public static class GameScenePartitioner_OnPrefabInit_Patch {
 		internal static bool Prepare() {
 			var options = FastTrackOptions.Instance;
@@ -118,7 +118,7 @@ namespace PeterHan.FastTrack {
 	/// <summary>
 	/// Applied to Global to start up some expensive things before Game.LateUpdate runs.
 	/// </summary>
-	[HarmonyPatch(typeof(Global), nameof(Global.LateUpdate))]
+	[HarmonyPatch(typeof(Global), "LateUpdate")]
 	public static class Global_LateUpdate_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.ConduitOpts;
 
@@ -134,7 +134,7 @@ namespace PeterHan.FastTrack {
 	/// <summary>
 	/// Applied to Global to start up some expensive things before Game.Update runs.
 	/// </summary>
-	[HarmonyPatch(typeof(Global), nameof(Global.Update))]
+	[HarmonyPatch(typeof(Global), "Update")]
 	public static class Global_Update_Patch {
 		internal static bool Prepare() {
 			var options = FastTrackOptions.Instance;
@@ -186,7 +186,7 @@ namespace PeterHan.FastTrack {
 	/// <summary>
 	/// Applied to World to finish up expensive things after Game.LateUpdate has run.
 	/// </summary>
-	[HarmonyPatch(typeof(World), nameof(World.LateUpdate))]
+	[HarmonyPatch(typeof(World), "LateUpdate")]
 	public static class World_LateUpdate_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.PickupOpts;
 

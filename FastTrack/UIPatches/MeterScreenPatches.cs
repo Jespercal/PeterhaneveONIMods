@@ -61,7 +61,7 @@ namespace PeterHan.FastTrack.UIPatches {
 			var duplicants = Components.LiveMinionIdentities.GetWorldItems(__instance.WorldID);
 			int n = duplicants.Count, total = 0;
 			if (n == 0)
-				__instance.AddPoint(0f);
+				__instance.GetType().GetMethod("AddPoint", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(__instance, new object[] { 0f});
 			else {
 				for (int i = 0; i < n; i++)
 					if (duplicants[i].TryGetComponent(out OxygenBreather breather)) {
@@ -77,7 +77,7 @@ namespace PeterHan.FastTrack.UIPatches {
 								total -= 50;
 						}
 					}
-				__instance.AddPoint(Mathf.Round((float)total / n));
+                __instance.GetType().GetMethod("AddPoint", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(__instance, new object[] { Mathf.Round((float)total / n) });
 			}
 			return false;
 		}
@@ -86,8 +86,7 @@ namespace PeterHan.FastTrack.UIPatches {
 	/// Applied to ColonyDiagnosticScreen.DiagnosticRow to suppress SparkChart updates if
 	/// not visible.
 	/// </summary>
-	[HarmonyPatch(typeof(ColonyDiagnosticScreen.DiagnosticRow), nameof(ColonyDiagnosticScreen.
-		DiagnosticRow.Sim4000ms))]
+	[HarmonyPatch(typeof(ColonyDiagnosticScreen.DiagnosticRow), "Sim4000ms")]
 	public static class DiagnosticRow_Sim4000ms_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.RenderTicks;
 
@@ -103,7 +102,7 @@ namespace PeterHan.FastTrack.UIPatches {
 	/// Applied to MeterScreen to reduce allocations and speed up getting the list of
 	/// Duplicants by stress value.
 	/// </summary>
-	[HarmonyPatch(typeof(MeterScreen), nameof(MeterScreen.GetStressedMinions))]
+	[HarmonyPatch(typeof(MeterScreen), "GetStressedMinions")]
 	public static class MeterScreen_GetStressedMinions_Patch {
 		/// <summary>
 		/// Avoids allocating new lists every frame.
@@ -119,7 +118,7 @@ namespace PeterHan.FastTrack.UIPatches {
 		internal static bool Prefix(MeterScreen __instance, ref IList<MinionIdentity> __result)
 		{
 			var stressAmount = Db.Get().Amounts.Stress;
-			var duplicants = __instance.GetWorldMinionIdentities();
+			var duplicants = (List<MinionIdentity>)__instance.GetType().GetMethod("GetWorldMinionIdentities", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(__instance, new object[] { });
 			var result = CACHED_LIST;
 			int n = duplicants.Count;
 			var byStress = ListPool<StressEntry, MeterScreen>.Allocate();
@@ -188,7 +187,7 @@ namespace PeterHan.FastTrack.UIPatches {
 	/// <summary>
 	/// Applied to MeterScreen to refresh the living Duplicant population much faster.
 	/// </summary>
-	[HarmonyPatch(typeof(MeterScreen), nameof(MeterScreen.RefreshMinions))]
+	[HarmonyPatch(typeof(MeterScreen), "RefreshMinions")]
 	public static class MeterScreen_RefreshMinions_Patch {
 		/// <summary>
 		/// Avoid allocating many strings every frame.
@@ -200,16 +199,16 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// <summary>
 		/// Applied before RefreshMinions runs.
 		/// </summary>
-		internal static bool Prefix(MeterScreen __instance) {
+		internal static bool Prefix(MeterScreen __instance, LocText ___currentMinions, ref int ___cachedMinionCount) {
 			int living = Components.LiveMinionIdentities.Count;
-			int identities = __instance.GetWorldMinionIdentities().Count;
-			var currentMinions = __instance.currentMinions;
+			int identities = ((List<MinionIdentity>)__instance.GetType().GetMethod("GetWorldMinionIdentities", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(__instance, new object[] { })).Count;
+			var currentMinions = ___currentMinions;
 			var tt = __instance.MinionsTooltip;
-			if (identities != __instance.cachedMinionCount && currentMinions != null && tt !=
+			if (identities != ___cachedMinionCount && currentMinions != null && tt !=
 					null) {
 				string ttText;
 				WorldContainer activeWorld;
-				__instance.cachedMinionCount = identities;
+                ___cachedMinionCount = identities;
 				string alive = living.ToString();
 				if (DlcManager.FeatureClusterSpaceEnabled() && (activeWorld = ClusterManager.
 						Instance.activeWorld) != null && activeWorld.TryGetComponent(
@@ -236,7 +235,7 @@ namespace PeterHan.FastTrack.UIPatches {
 	/// Applied to MeterScreen to get rid of LINQ when calculating the Duplicants alive on
 	/// the current world.
 	/// </summary>
-	[HarmonyPatch(typeof(MeterScreen), nameof(MeterScreen.RefreshWorldMinionIdentities))]
+	[HarmonyPatch(typeof(MeterScreen), "RefreshWorldMinionIdentities")]
 	public static class MeterScreen_RefreshWorldMinionIdentities_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.AllocOpts;
 

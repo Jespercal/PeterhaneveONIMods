@@ -67,7 +67,7 @@ namespace PeterHan.FastTrack.UIPatches {
 	/// <summary>
 	/// Applied to ModsScreen to update the scroll pane whenever the list changes.
 	/// </summary>
-	[HarmonyPatch(typeof(ModsScreen), nameof(ModsScreen.BuildDisplay))]
+	[HarmonyPatch(typeof(ModsScreen), "BuildDisplay")]
 	public static class ModsScreen_BuildDisplay_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.VirtualScroll;
 
@@ -97,7 +97,7 @@ namespace PeterHan.FastTrack.UIPatches {
 	/// <summary>
 	/// Applied to ModsScreen to set up listeners and state for virtual scroll.
 	/// </summary>
-	[HarmonyPatch(typeof(ModsScreen), nameof(ModsScreen.OnActivate))]
+	[HarmonyPatch(typeof(ModsScreen), "OnActivate")]
 	public static class ModsScreen_OnActivate_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.VirtualScroll;
 
@@ -183,8 +183,7 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// Applied to ReceptacleSideScreen to properly rebuild the layout if the available
 		/// item amounts change.
 		/// </summary>
-		[HarmonyPatch(typeof(ReceptacleSideScreen), nameof(ReceptacleSideScreen.
-			UpdateAvailableAmounts))]
+		[HarmonyPatch(typeof(ReceptacleSideScreen), "UpdateAvailableAmounts")]
 		internal static class UpdateAvailableAmounts_Patch {
 			/// <summary>
 			/// Avoid reallocating a new StringBuilder every frame.

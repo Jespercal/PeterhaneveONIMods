@@ -215,7 +215,7 @@ namespace PeterHan.TurnBackTheClock {
 					foreach (var converter in ec) {
 						var inputs = converter.consumedElements;
 						// Brine recipe
-						if (inputs.Length == 1 && inputs[0].tag == BRINE) {
+						if (inputs.Length == 1 && inputs[0].Tag == BRINE) {
 							converter.outputElements[0].minOutputTemperature = TEMPERATURE;
 							converter.outputElements[1].minOutputTemperature = TEMPERATURE;
 						};

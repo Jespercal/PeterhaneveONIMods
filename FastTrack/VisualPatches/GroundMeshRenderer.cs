@@ -110,7 +110,7 @@ namespace PeterHan.FastTrack.VisualPatches {
 		/// <summary>
 		/// Applied to RenderData to destroy the renderer when it dies.
 		/// </summary>
-		[HarmonyPatch(typeof(RenderData), nameof(RenderData.ClearMesh))]
+		[HarmonyPatch(typeof(RenderData), "ClearMesh")]
 		internal static class ClearMesh_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.MeshRendererOptions !=
 				FastTrackOptions.MeshRendererSettings.None;
@@ -151,7 +151,7 @@ namespace PeterHan.FastTrack.VisualPatches {
 		/// <summary>
 		/// Applied to RenderData to remove the DrawMesh call.
 		/// </summary>
-		[HarmonyPatch(typeof(RenderData), nameof(RenderData.Render))]
+		[HarmonyPatch(typeof(RenderData), "Render")]
 		internal static class Render_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.MeshRendererOptions !=
 				FastTrackOptions.MeshRendererSettings.None;
@@ -159,11 +159,11 @@ namespace PeterHan.FastTrack.VisualPatches {
 			/// <summary>
 			/// Applied before Render runs.
 			/// </summary>
-			internal static bool Prefix(Vector3 position, RenderData __instance) {
-				var mesh = __instance.mesh;
+			internal static bool Prefix(Vector3 position, Mesh ___mesh, List<Vector3> ___pos, RenderData __instance) {
+				var mesh = ___mesh;
 				if (mesh != null && visualizers.TryGetValue(mesh, out GroundMeshRenderer
 						visualizer))
-					visualizer.UpdatePosition(position, __instance.pos.Count > 0 && !
+					visualizer.UpdatePosition(position, ___pos.Count > 0 && !
 						FullScreenDialogPatches.DialogVisible);
 				return false;
 			}

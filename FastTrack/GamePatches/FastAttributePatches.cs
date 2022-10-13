@@ -73,7 +73,7 @@ namespace PeterHan.FastTrack.GamePatches {
 	/// Applied to AttributeConverters to add a copy of our fast component alongside each
 	/// instance.
 	/// </summary>
-	[HarmonyPatch(typeof(AttributeConverters), nameof(AttributeConverters.OnPrefabInit))]
+	[HarmonyPatch(typeof(AttributeConverters), "OnPrefabInit")]
 	public static class AttributeConverters_OnPrefabInit_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.FastAttributesMode;
 
@@ -91,7 +91,7 @@ namespace PeterHan.FastTrack.GamePatches {
 	/// <summary>
 	/// Applied to AttributeLevels to add a copy of our fast component alongside each instance.
 	/// </summary>
-	[HarmonyPatch(typeof(AttributeLevels), nameof(AttributeLevels.OnPrefabInit))]
+	[HarmonyPatch(typeof(AttributeLevels), "OnPrefabInit")]
 	public static class AttributeLevels_OnPrefabInit_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.FastAttributesMode;
 
@@ -111,7 +111,7 @@ namespace PeterHan.FastTrack.GamePatches {
 	/// <summary>
 	/// Applied to ManualGenerator to use the fast version of attribute leveling.
 	/// </summary>
-	[HarmonyPatch(typeof(ManualGenerator), nameof(ManualGenerator.OnWorkTick))]
+	[HarmonyPatch(typeof(ManualGenerator), "OnWorkTick")]
 	public static class ManualGenerator_OnWorkTick_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.FastAttributesMode;
 

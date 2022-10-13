@@ -80,7 +80,7 @@ namespace PeterHan.FastTrack.VisualPatches {
 	/// <summary>
 	/// Applied to CancellableDig to instantly remove the placer.
 	/// </summary>
-	[HarmonyPatch(typeof(CancellableDig), nameof(CancellableDig.OnCancel))]
+	[HarmonyPatch(typeof(CancellableDig), "OnCancel")]
 	public static class CancellableDig_OnCancel_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.NoPlacerEasing;
 
@@ -238,7 +238,7 @@ namespace PeterHan.FastTrack.VisualPatches {
 	/// Applied to Sublimates to stop spawning the bubble effect if the sublimated item is
 	/// in a different world or not on screen.
 	/// </summary>
-	[HarmonyPatch(typeof(Sublimates), nameof(Sublimates.Emit))]
+	[HarmonyPatch(typeof(Sublimates), "Emit")]
 	public static class Sublimates_Emit_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.RenderTicks;
 

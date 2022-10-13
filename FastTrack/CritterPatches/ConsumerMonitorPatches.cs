@@ -77,7 +77,7 @@ namespace PeterHan.FastTrack.CritterPatches {
 	/// more sensible version that is faster.
 	/// </summary>
 	[HarmonyPatch(typeof(GasAndLiquidConsumerMonitor.Instance),
-		nameof(GasAndLiquidConsumerMonitor.Instance.FindFood))]
+        "FindFood")]
 	public static class GasAndLiquidConsumerMonitor_Instance_FindFood_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.CritterConsumers;
 

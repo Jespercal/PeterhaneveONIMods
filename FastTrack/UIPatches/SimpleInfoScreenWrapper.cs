@@ -192,7 +192,7 @@ namespace PeterHan.FastTrack.UIPatches {
 			instance = this;
 		}
 
-		public override void OnCleanUp() {
+		protected override void OnCleanUp() {
 			int n = processHeaders.Count;
 			allGeysers = null;
 			foreach (var pair in labelCache)
@@ -252,7 +252,7 @@ namespace PeterHan.FastTrack.UIPatches {
 			}
 		}
 
-		public override void OnSpawn() {
+        protected override void OnSpawn() {
 			string atTemperature = DETAILTABS.DETAILS.CONTENTS_TEMPERATURE;
 			base.OnSpawn();
 			sis.StoragePanel.TryGetComponent(out storageParent);
@@ -551,7 +551,7 @@ namespace PeterHan.FastTrack.UIPatches {
 		}
 
 		public void Sim200ms(float _) {
-			if (sis.lastTarget != null && storageParent != null && isActiveAndEnabled) {
+			if ((GameObject)sis.GetType().GetField("lastTarget", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(sis) != null && storageParent != null && isActiveAndEnabled) {
 				Update200ms();
 			}
 		}
@@ -561,7 +561,7 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// changes.
 		/// </summary>
 		private void Update200ms() {
-			var vitalsContainer = sis.vitalsContainer;
+			var vitalsContainer = (MinionVitalsPanel)sis.GetType().GetField("MinionVitalsPanel", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(sis);
 			RefreshStress();
 			if (vitalsActive) {
 				var vi = VitalsPanelWrapper.Instance;
@@ -612,8 +612,8 @@ namespace PeterHan.FastTrack.UIPatches {
 				if (rocketModule != null) {
 					rocketInterface = rocketModule.CraftInterface;
 					// Clustercraft can be pulled from the rocket-to-module interface
-					gridEntity = rocketInterface.m_clustercraft;
-				} else if (target.TryGetComponent(out gridEntity) && gridEntity is
+					gridEntity = (Clustercraft)rocketInterface.GetType().GetField("m_clustercraft", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(rocketInterface);
+                } else if (target.TryGetComponent(out gridEntity) && gridEntity is
 						Clustercraft craft)
 					rocketInterface = craft.ModuleInterface;
 				else
@@ -631,7 +631,7 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// <summary>
 		/// Applied to SimpleInfoScreen to add our component to its game object.
 		/// </summary>
-		[HarmonyPatch(typeof(SimpleInfoScreen), nameof(SimpleInfoScreen.OnPrefabInit))]
+		[HarmonyPatch(typeof(SimpleInfoScreen), "OnPrefabInit")]
 		internal static class OnPrefabInit_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.SideScreenOpts;
 
@@ -654,8 +654,8 @@ namespace PeterHan.FastTrack.UIPatches {
 			/// <summary>
 			/// Applied before OnSelectTarget runs.
 			/// </summary>
-			internal static bool Prefix(SimpleInfoScreen __instance, GameObject target) {
-				if (__instance.lastTarget != target)
+			internal static bool Prefix(SimpleInfoScreen __instance, GameObject target, GameObject ___lastTarget) {
+				if (___lastTarget != target)
 					instance?.OnSelectTarget(target);
 				return true;
 			}
@@ -680,8 +680,7 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// <summary>
 		/// Applied to SimpleInfoScreen to refresh the egg chances when they change.
 		/// </summary>
-		[HarmonyPatch(typeof(SimpleInfoScreen), nameof(SimpleInfoScreen.
-			RefreshBreedingChance))]
+		[HarmonyPatch(typeof(SimpleInfoScreen), "RefreshBreedingChance")]
 		internal static class RefreshBreedingChance_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.SideScreenOpts;
 
@@ -697,8 +696,7 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// <summary>
 		/// Applied to SimpleInfoScreen to refresh the checklist of conditions for operation.
 		/// </summary>
-		[HarmonyPatch(typeof(SimpleInfoScreen), nameof(SimpleInfoScreen.
-			RefreshProcessConditions))]
+		[HarmonyPatch(typeof(SimpleInfoScreen), "RefreshProcessConditions")]
 		internal static class RefreshProcessConditions_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.SideScreenOpts;
 
@@ -714,16 +712,16 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// <summary>
 		/// Applied to SimpleInfoScreen to refresh the storage when storage changes.
 		/// </summary>
-		[HarmonyPatch(typeof(SimpleInfoScreen), nameof(SimpleInfoScreen.RefreshStorage))]
+		[HarmonyPatch(typeof(SimpleInfoScreen), "RefreshStorage")]
 		internal static class RefreshStorage_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.SideScreenOpts;
 
 			/// <summary>
 			/// Applied before RefreshStorage runs.
 			/// </summary>
-			internal static bool Prefix(SimpleInfoScreen __instance) {
+			internal static bool Prefix(SimpleInfoScreen __instance, GameObject ___selectedTarget) {
 				var inst = instance;
-				if (inst != null && __instance.selectedTarget != null)
+				if (inst != null && ___selectedTarget != null)
 					inst.RefreshStorage();
 				return false;
 			}
@@ -733,7 +731,7 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// Applied to SimpleInfoScreen to refresh the cluster map info when the refresh is
 		/// triggered.
 		/// </summary>
-		[HarmonyPatch(typeof(SimpleInfoScreen), nameof(SimpleInfoScreen.RefreshWorld))]
+		[HarmonyPatch(typeof(SimpleInfoScreen), "RefreshWorld")]
 		internal static class RefreshWorld_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.SideScreenOpts;
 

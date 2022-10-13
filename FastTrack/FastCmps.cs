@@ -83,7 +83,7 @@ namespace PeterHan.FastTrack {
 					GetGenericTypeDefinition() == typeof(Components.Cmps<>)) {
 				// Components.Cmps<argument>
 				var t = cmpType.GenericTypeArguments[0];
-				var itemsField = cmpType.GetFieldSafe(nameof(Components.Cmps<Brain>.items),
+				var itemsField = cmpType.GetFieldSafe(nameof(Components.Cmps<Brain>.Items),
 					false);
 				var eventField = cmpType.GetFieldSafe(evtName, false);
 				var kcv = typeof(KCompactedVector<>).MakeGenericType(t);
@@ -329,7 +329,7 @@ namespace PeterHan.FastTrack {
 	/// Applied to Workable to prevent the use of GetWorldItems in the event handler, which
 	/// could be called from a delegate in rocket landing that is really hard to patch.
 	/// </summary>
-	[HarmonyPatch(typeof(Workable), nameof(Workable.UpdateStatusItem))]
+	[HarmonyPatch(typeof(Workable), "UpdateStatusItem")]
 	public static class Workable_UpdateStatusItem_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.AllocOpts;
 
@@ -338,8 +338,8 @@ namespace PeterHan.FastTrack {
 		/// </summary>
 		internal static bool Prefix(Workable __instance) {
 			if (__instance.TryGetComponent(out KSelectable selectable)) {
-				var working = __instance.workingStatusItem;
-				ref Guid statusHandle = ref __instance.workStatusItemHandle;
+				var working = (StatusItem)__instance.GetType().GetField("workingStatusItem", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(__instance);
+				Guid statusHandle = (Guid)__instance.GetType().GetField("workStatusItemHandle", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(__instance);
 				selectable.RemoveStatusItem(statusHandle);
 				if (__instance.worker == null)
 					UpdateStatusItem(__instance, selectable, ref statusHandle);
@@ -372,10 +372,9 @@ namespace PeterHan.FastTrack {
 			}
 			if (noMinions)
 				statusHandle = selectable.AddStatusItem(dbb.WorkRequiresMinion);
-			else if (instance.shouldShowSkillPerkStatusItem && !string.IsNullOrEmpty(perk)) {
+			else if ((bool)instance.GetType().GetField("shouldShowSkillPerkStatusItem", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(instance) && !string.IsNullOrEmpty(perk)) {
 				if (MinionResume.AnyMinionHasPerk(perk, worldID))
-					statusHandle = selectable.AddStatusItem(instance.
-						readyForSkillWorkStatusItem, perk);
+					statusHandle = selectable.AddStatusItem((StatusItem)instance.GetType().GetField("readyForSkillWorkStatusItem", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(instance), perk);
 				else {
 					var statusItem = DlcManager.FeatureClusterSpaceEnabled() ? dbb.
 						ClusterColonyLacksRequiredSkillPerk : dbb.ColonyLacksRequiredSkillPerk;

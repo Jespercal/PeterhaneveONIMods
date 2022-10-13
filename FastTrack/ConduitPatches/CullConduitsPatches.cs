@@ -22,10 +22,25 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using UnityEngine;
-
-using RenderMeshContext = ConduitFlowVisualizer.RenderMeshContext;
+using static PeterHan.FastTrack.ConduitPatches.ConduitFlowMeshPatches;
 using TranspiledMethod = System.Collections.Generic.IEnumerable<HarmonyLib.CodeInstruction>;
+[assembly: IgnoresAccessChecksTo("ConduitFlowVisualizer")]
+
+namespace System.Runtime.CompilerServices
+{
+    [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    public class IgnoresAccessChecksToAttribute : Attribute
+    {
+        public IgnoresAccessChecksToAttribute(string assemblyName)
+        {
+            AssemblyName = assemblyName;
+        }
+
+        public string AssemblyName { get; }
+    }
+}
 
 namespace PeterHan.FastTrack.ConduitPatches {
 	/// <summary>
@@ -33,7 +48,8 @@ namespace PeterHan.FastTrack.ConduitPatches {
 	/// gas conduits inside tiles when not in a conduit overlay. Makes a small difference on
 	/// most bases, but zoomed out pipe spaghetti can make a huge difference!
 	/// </summary>
-	[HarmonyPatch(typeof(RenderMeshContext), MethodType.Constructor,
+	[HarmonyPatchStringType("ConduitFlowVisualizer.RenderMeshContext")]
+	[HarmonyPatch(MethodType.Constructor,
 		typeof(ConduitFlowVisualizer), typeof(float), typeof(Vector2I), typeof(Vector2I))]
 	public static class ConduitFlowVisualizer_RenderMeshContext_Constructor_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.CullConduits;
@@ -55,8 +71,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 				ILGenerator generator) {
 			var cellToXY = typeof(Grid).GetMethodSafe(nameof(Grid.CellToXY), true,
 				typeof(int));
-			var showContentsField = typeof(ConduitFlowVisualizer).GetFieldSafe(nameof(
-				ConduitFlowVisualizer.showContents), false);
+			var showContentsField = typeof(ConduitFlowVisualizer).GetFieldSafe("showContents", false);
 			var filter = typeof(ConduitFlowVisualizer_RenderMeshContext_Constructor_Patch).
 				GetMethodSafe(nameof(FilterConduitsInTiles), true, typeof(bool), typeof(int),
 				typeof(bool));
@@ -139,8 +154,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 			var target = typeof(Grid).GetMethodSafe(nameof(Grid.CellToXY), true, typeof(int));
 			var replacement = typeof(SolidConduitFlowVisualizer_Render_Patch).GetMethodSafe(
 				nameof(FilterConduit), true, typeof(int), typeof(bool));
-			var showContentsField = typeof(SolidConduitFlowVisualizer).GetFieldSafe(
-				nameof(SolidConduitFlowVisualizer.showContents), false);
+			var showContentsField = typeof(SolidConduitFlowVisualizer).GetFieldSafe("showContents", false);
 			int state = 0;
 			if (marker != null && replacement != null && showContentsField != null &&
 					target != null) {
@@ -216,7 +230,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 				controller.enabled = show;
 		}
 
-		public override void OnCleanUp() {
+		protected override void OnCleanUp() {
 			if (partitionerEntry.IsValid())
 				GameScenePartitioner.Instance.Free(ref partitionerEntry);
 			base.OnCleanUp();
@@ -229,7 +243,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 			CheckVisible();
 		}
 
-		public override void OnSpawn() {
+        protected override void OnSpawn() {
 			var gsp = GameScenePartitioner.Instance;
 			base.OnSpawn();
 			if (gsp != null)
@@ -251,7 +265,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 	/// <summary>
 	/// Applied to KAnimGraphTileVisualizer to add a listener for solid changes on spawn.
 	/// </summary>
-	[HarmonyPatch(typeof(KAnimGraphTileVisualizer), nameof(KAnimGraphTileVisualizer.OnSpawn))]
+	[HarmonyPatch(typeof(KAnimGraphTileVisualizer), "OnSpawn")]
 	public static class KAnimGraphTileVisualizer_OnSpawn_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.CullConduits;
 
@@ -360,7 +374,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 		/// </summary>
 		internal static TranspiledMethod Transpiler(TranspiledMethod instructions) {
 			return PPatchTools.ReplaceMethodCallSafe(instructions, typeof(OverlayModes.Mode).
-				GetMethod(nameof(OverlayModes.Mode.AddTargetIfVisible), PPatchTools.
+				GetMethod("AddTargetIfVisible", PPatchTools.
 				BASE_FLAGS | BindingFlags.Instance)?.MakeGenericMethod(typeof(SaveLoadRoot)),
 				typeof(OverlayModes_Modes_Patch).GetMethodSafe(nameof(AddTargetIfVisible),
 				true, PPatchTools.AnyArguments));
@@ -371,7 +385,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 	/// Applied to OverlayModes.Mode to restore the overlay visibility when a conduit leaves
 	/// visibility in the overlay.
 	/// </summary>
-	[HarmonyPatch(typeof(OverlayModes.Mode), nameof(OverlayModes.Mode.ResetDisplayValues),
+	[HarmonyPatch(typeof(OverlayModes.Mode), "ResetDisplayValues",
 		typeof(KBatchedAnimController))]
 	public static class OverlayModes_Mode_ResetDisplayValues_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.CullConduits;

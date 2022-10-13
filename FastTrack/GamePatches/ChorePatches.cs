@@ -19,7 +19,6 @@
 using HarmonyLib;
 using System.Collections.Generic;
 using PeterHan.PLib.Core;
-using MarkedClearable = ClearableManager.MarkedClearable;
 using PreContext = Chore.Precondition.Context;
 using SortedClearable = ClearableManager.SortedClearable;
 
@@ -217,7 +216,7 @@ namespace PeterHan.FastTrack.GamePatches {
 		/// <param name="markedClearables">The items currently marked for sweep.</param>
 		/// <param name="sortedClearables">The location where the valid sweep errands will be stored.</param>
 		private static void SortClearables(Navigator navigator,
-				KCompactedVector<MarkedClearable> markedClearables,
+				KCompactedVector<dynamic> markedClearables,
 				List<SortedClearable> sortedClearables) {
 			var clearables = markedClearables.GetDataList();
 			int n = clearables.Count;

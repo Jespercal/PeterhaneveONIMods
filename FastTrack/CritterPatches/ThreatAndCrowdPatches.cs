@@ -30,7 +30,7 @@ namespace PeterHan.FastTrack.CritterPatches {
 	/// <summary>
 	/// Applied to OvercrowdingMonitor to replace UpdateState with a faster version.
 	/// </summary>
-	[HarmonyPatch(typeof(OvercrowdingMonitor), nameof(OvercrowdingMonitor.UpdateState))]
+	[HarmonyPatch(typeof(OvercrowdingMonitor), "UpdateState")]
 	public static class OvercrowdingMonitor_UpdateState_Patch {
 		/// <summary>
 		/// Tag bits are faster ways to check for tags being present than HasTag.
@@ -292,8 +292,7 @@ namespace PeterHan.FastTrack.CritterPatches {
 		/// <summary>
 		/// Applied before FindThreat runs.
 		/// </summary>
-		internal static bool Prefix(ThreatMonitor.Instance __instance,
-				ref GameObject __result) {
+		internal static bool Prefix(ThreatMonitor.Instance __instance, ref GameObject __result) {
 			var threats = __instance.threats;
 			if (__instance.isMasterNull || threats == null)
 				__result = null;

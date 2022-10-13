@@ -18,6 +18,7 @@
 
 using HarmonyLib;
 using System;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -25,7 +26,7 @@ namespace PeterHan.FastTrack.UIPatches {
 	/// <summary>
 	/// Applied to ResearchScreen to make its dreadfully slow Update method way faster.
 	/// </summary>
-	[HarmonyPatch(typeof(ResearchScreen), nameof(ResearchScreen.Update))]
+	[HarmonyPatch(typeof(ResearchScreen), "Update")]
 	public static class ResearchScreen_Update_Patch {
 		/// <summary>
 		/// The squared threshold in pixels where movement ends.
@@ -36,8 +37,9 @@ namespace PeterHan.FastTrack.UIPatches {
 
 		private static Vector2 ClampBack(ResearchScreen __instance, RectTransform rt,
 				float zoom, Vector2 inertia, Vector2 anchorPos) {
+			Type info = __instance.GetType();
 			const float ZS = 250.0f;
-			Vector2 contentSize = rt.rect.size, target = __instance.forceTargetPosition;
+			Vector2 contentSize = rt.rect.size, target = (Vector2)info.GetField("forceTargetPosition", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
 			float y = 0.0f, xMin = (-contentSize.x * 0.5f - ZS) * zoom, xMax = ZS * zoom,
 				yMin = -ZS * zoom;
 			if (__instance.TryGetComponent(out RectTransform irt))
@@ -47,18 +49,18 @@ namespace PeterHan.FastTrack.UIPatches {
 			target.y = Mathf.Clamp(target.y, yMin, yMax);
 			Vector2 deltaAnchor = new Vector2(Mathf.Clamp(anchorPos.x, xMin, xMax),
 				Mathf.Clamp(anchorPos.y, yMin, yMax)) + inertia - anchorPos;
-			__instance.forceTargetPosition = target;
+            info.GetField("forceTargetPosition", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(__instance, target);
 			return deltaAnchor;
 		}
 
 		/// <summary>
 		/// Applied before Update runs.
 		/// </summary>
-		internal static bool Prefix(ResearchScreen __instance) {
+		internal static bool Prefix(ResearchScreen __instance, ref Vector2 ___dragInteria, ref Vector3 ___dragLastPosition, float ___edgeClampFactor, ref Vector2 ___keyPanDelta) {
 			if (__instance.canvas.enabled && __instance.scrollContent.TryGetComponent(
 					out RectTransform rt)) {
 				Vector2 anchorPos = rt.anchoredPosition, startPos = anchorPos, inertia =
-					__instance.dragInteria;
+                    ___dragInteria;
 				Vector3 mousePos = KInputManager.GetMousePos();
 				bool dragging = UpdateDrag(__instance, mousePos);
 				float dt = Time.unscaledDeltaTime;
@@ -67,13 +69,13 @@ namespace PeterHan.FastTrack.UIPatches {
 				bool anyDown = UpdateKeyboard(__instance, dt, ref anchorPos,
 					out Vector2 keyDelta);
 				if (dragging) {
-					Vector2 inerDelta = mousePos - __instance.dragLastPosition;
+					Vector2 inerDelta = mousePos - ___dragLastPosition;
 					anchorPos += inerDelta;
-					__instance.dragLastPosition = mousePos;
+                    ___dragLastPosition = mousePos;
 					inertia = Vector2.ClampMagnitude(inertia + inerDelta, 400.0f);
 				}
 				inertia *= Math.Max(0.0f, 1.0f - dt * 4.0f);
-				__instance.dragInteria = inertia;
+                ___dragInteria = inertia;
 				// Slide view back in bounds if not dragging
 				if (!dragging) {
 					Vector2 deltaAnchor = ClampBack(__instance, rt, zoom, inertia, anchorPos);
@@ -89,9 +91,9 @@ namespace PeterHan.FastTrack.UIPatches {
 						if (deltaAnchor.y > 0f)
 							keyDelta.y = Math.Max(0f, keyDelta.y);
 					} else
-						anchorPos += deltaAnchor * __instance.edgeClampFactor * dt;
+						anchorPos += deltaAnchor * ___edgeClampFactor * dt;
 				}
-				__instance.keyPanDelta = keyDelta;
+                ___keyPanDelta = keyDelta;
 				ZoomToTarget(__instance, dt, anyDown || dragging, ref anchorPos);
 				if (!Mathf.Approximately(anchorPos.x, startPos.x) || !Mathf.Approximately(
 						anchorPos.y, startPos.y))
@@ -107,18 +109,20 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// <param name="mousePos">The current mouse position.</param>
 		/// <returns>true if the user is dragging the screen, or false otherwise.</returns>
 		private static bool UpdateDrag(ResearchScreen instance, Vector3 mousePos) {
-			bool dragging = instance.isDragging, buttonDown = instance.leftMouseDown ||
-				instance.rightMouseDown;
+			Type info = instance.GetType();
+
+            bool dragging = (bool)info.GetField("isDragging", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(instance), buttonDown = (bool)info.GetField("leftMouseDown", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(instance) ||
+				(bool)info.GetField("rightMouseDown", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(instance);
 			// No square root for you, sqrt(1) = 1
-			if (!dragging && buttonDown && (instance.dragStartPosition - mousePos).
+			if (!dragging && buttonDown && (((Vector3)info.GetField("dragStartPosition", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(instance)) - mousePos).
 					sqrMagnitude > THRESHOLD_SQ)
 				dragging = true;
 			else if (dragging && !buttonDown) {
-				instance.leftMouseDown = false;
-				instance.rightMouseDown = false;
-				dragging = false;
+                info.GetField("leftMouseDown", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(instance, false);
+                info.GetField("rightMouseDown", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(instance, false);
+                dragging = false;
 			}
-			instance.isDragging = dragging;
+			info.GetField("isDragging", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(instance, dragging);
 			return dragging;
 		}
 
@@ -132,20 +136,22 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// <returns>true if any keyboard keys are down, or false otherwise.</returns>
 		private static bool UpdateKeyboard(ResearchScreen instance, float dt,
 				ref Vector2 anchorPos, out Vector2 delta) {
-			float speed = instance.keyboardScrollSpeed, easing = instance.keyPanEasing;
-			Vector2 panDelta = instance.keyPanDelta;
+			Type info = instance.GetType();
+
+			float speed = (float)info.GetField("keyboardScrollSpeed", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance), easing = (float)info.GetField("keyPanEasing", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance);
+			Vector2 panDelta = (Vector2)info.GetField("keyPanDelta", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance);
 			bool anyDown = false;
-			if (instance.panUp) {
+			if ((bool)info.GetField("panUp", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance)) {
 				panDelta.y -= dt * speed;
 				anyDown = true;
-			} else if (instance.panDown) {
+			} else if ((bool)info.GetField("panDown", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance)) {
 				panDelta.y += dt * speed;
 				anyDown = true;
 			}
-			if (instance.panLeft) {
+			if ((bool)info.GetField("panLeft", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance)) {
 				panDelta.x += dt * speed;
 				anyDown = true;
-			} else if (instance.panRight) {
+			} else if ((bool)info.GetField("panRight", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance)) {
 				panDelta.x -= dt * speed;
 				anyDown = true;
 			}
@@ -158,8 +164,9 @@ namespace PeterHan.FastTrack.UIPatches {
 			// Deceleration
 			panDelta.x -= Mathf.Lerp(0f, panDelta.x, dt * easing);
 			panDelta.y -= Mathf.Lerp(0f, panDelta.y, dt * easing);
-			instance.keyPanDelta = panDelta;
-			anchorPos += panDelta;
+			info.GetField("keyPanDelta", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(instance, panDelta);
+
+            anchorPos += panDelta;
 			delta = panDelta;
 			return anyDown;
 		}
@@ -175,12 +182,13 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// <returns>The current zoom level.</returns>
 		private static float UpdateZoom(ResearchScreen instance, Vector3 mousePos,
 				RectTransform rt, float dt, ref Vector2 anchorPos) {
-			float zoom = instance.currentZoom, oldZoom = zoom;
+			Type info = instance.GetType();
+
+			float zoom = (float)info.GetField("currentZoom", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance), oldZoom = zoom;
 			Vector2 target = mousePos;
-			zoom = Mathf.Lerp(zoom, instance.targetZoom, Math.Min(0.9f, instance.
-				effectiveZoomSpeed * dt));
-			instance.currentZoom = zoom;
-			if (instance.zoomCenterLock)
+			zoom = Mathf.Lerp(zoom, (float)info.GetField("targetZoom", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance), Math.Min(0.9f, (float)info.GetField("effectiveZoomSpeed", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance) * dt));
+			info.GetField("currentZoom", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(instance, zoom);
+            if ((bool)info.GetField("zoomCenterLock", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance))
 				target = new Vector2(0.5f * Screen.width, 0.5f * Screen.height);
 			Vector2 before = zoom * rt.InverseTransformPoint(target);
 			if (!Mathf.Approximately(zoom, oldZoom))
@@ -198,12 +206,12 @@ namespace PeterHan.FastTrack.UIPatches {
 		/// <param name="anchorPos">The position of the tech tree to update.</param>
 		private static void ZoomToTarget(ResearchScreen instance, float dt, bool input,
 				ref Vector2 anchorPos) {
-			Vector2 target = instance.forceTargetPosition, pos = anchorPos;
-			if (instance.zoomingToTarget) {
+			Vector2 target = (Vector2)instance.GetType().GetField("forceTargetPosition", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance), pos = anchorPos;
+			if ((bool)instance.GetType().GetField("zoomingToTarget", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(instance)) {
 				// Process automatic zoom in, cancel if user input occurs
 				pos = Vector2.Lerp(pos, target, dt * 4.0f);
 				if ((pos - target).sqrMagnitude < THRESHOLD_SQ || input)
-					instance.zoomingToTarget = false;
+					instance.GetType().GetField("zoomingToTarget", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(instance, false);
 				anchorPos = pos;
 			}
 		}
@@ -212,7 +220,7 @@ namespace PeterHan.FastTrack.UIPatches {
 	/// <summary>
 	/// Applied to ResearchScreen to update the canvas size only when it is shown.
 	/// </summary>
-	[HarmonyPatch(typeof(ResearchScreen), nameof(ResearchScreen.OnShow))]
+	[HarmonyPatch(typeof(ResearchScreen), "OnShow")]
 	public static class ResearchScreen_OnShow_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.VirtualScroll;
 

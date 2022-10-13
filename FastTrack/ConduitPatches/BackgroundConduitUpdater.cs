@@ -185,7 +185,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 	/// <summary>
 	/// Applied to Game to restructure the conduit updates for better parallelism.
 	/// </summary>
-	[HarmonyPatch(typeof(Game), nameof(Game.LateUpdate))]
+	[HarmonyPatch(typeof(Game), "LateUpdate")]
 	public static class BackgroundConduitLateUpdatePatch {
 		internal static bool Prepare() => FastTrackOptions.Instance.ConduitOpts;
 
@@ -236,7 +236,7 @@ namespace PeterHan.FastTrack.ConduitPatches {
 	/// <summary>
 	/// Applied to Game to restructure the conduit updates for better parallelism.
 	/// </summary>
-	[HarmonyPatch(typeof(Game), nameof(Game.Update))]
+	[HarmonyPatch(typeof(Game), "Update")]
 	public static class BackgroundConduitUpdatePatch {
 		internal static bool Prepare() => FastTrackOptions.Instance.ConduitOpts;
 

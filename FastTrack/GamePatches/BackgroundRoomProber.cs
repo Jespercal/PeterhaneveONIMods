@@ -415,17 +415,17 @@ namespace PeterHan.FastTrack.GamePatches {
 			return cavity;
 		}
 
-		public override void OnCleanUp() {
+        protected override void OnCleanUp() {
 			Dispose();
 			base.OnCleanUp();
 		}
 
-		public override void OnPrefabInit() {
+        protected override void OnPrefabInit() {
 			base.OnPrefabInit();
 			Instance = this;
 		}
 
-		public override void OnSpawn() {
+		protected override void OnSpawn() {
 			base.OnSpawn();
 			var roomProberThread = new Thread(RunRoomProber) {
 				IsBackground = true, Name = "Room Prober", Priority = ThreadPriority.
@@ -680,7 +680,7 @@ namespace PeterHan.FastTrack.GamePatches {
 		/// Applied to RoomProber to redirect changes in the global buildings layer to the
 		/// background prober.
 		/// </summary>
-		[HarmonyPatch(typeof(RoomProber), nameof(RoomProber.OnBuildingsChanged))]
+		[HarmonyPatch(typeof(RoomProber), "OnBuildingsChanged")]
 		internal static class OnBuildingsChanged_Patch {
 			internal static bool Prepare() => FastTrackOptions.Instance.BackgroundRoomRebuild;
 

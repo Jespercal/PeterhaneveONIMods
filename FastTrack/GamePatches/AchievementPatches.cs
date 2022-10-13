@@ -121,14 +121,14 @@ namespace PeterHan.FastTrack.GamePatches {
 			return achievementsRun.Add(achievement);
 		}
 
-		public override void OnCleanUp() {
+        protected override void OnCleanUp() {
 			achievementsRun.Clear();
 			crittersHatched.Clear();
 			DestroyInstance();
 			base.OnCleanUp();
 		}
 
-		public override void OnPrefabInit() {
+        protected override void OnPrefabInit() {
 			base.OnPrefabInit();
 			achievementsRun.Clear();
 			targetFoods.Clear();
@@ -139,7 +139,7 @@ namespace PeterHan.FastTrack.GamePatches {
 			if (achieve != null)
 				foreach (var requirement in achieve.requirementChecklist)
 					if (requirement is EatXKCalProducedByY eatIt)
-						foodProducers.AddRange(eatIt.foodProducers);
+						foodProducers.AddRange((List<Tag>)eatIt.GetType().GetField("foodProducers", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(eatIt));
 			foreach (var recipe in ComplexRecipeManager.Get().recipes)
 				foreach (var fabricator in recipe.fabricators)
 					// Only 2 elements!
@@ -153,7 +153,7 @@ namespace PeterHan.FastTrack.GamePatches {
 			Instance = this;
 		}
 
-		public override void OnSpawn() {
+		protected override void OnSpawn() {
 			base.OnSpawn();
 			// Check the start world
 			var inst = ClusterManager.Instance;
@@ -196,15 +196,14 @@ namespace PeterHan.FastTrack.GamePatches {
 		/// <summary>
 		/// Applied before Success runs.
 		/// </summary>
-		internal static bool Prefix(AtLeastOneBuildingForEachDupe __instance,
-				ref bool __result) {
+		internal static bool Prefix(AtLeastOneBuildingForEachDupe __instance, List<Tag> ___validBuildingTypes, ref bool __result) {
 			int dupeCount = Components.LiveMinionIdentities.Items.Count;
 			bool success = false;
 			if (dupeCount > 0) {
 				var items = Components.BasicBuildings.Items;
 				// You need at least one Duplicant
 				int buildingCount = 0, n = items.Count;
-				var validTypes = __instance.validBuildingTypes;
+				var validTypes = ___validBuildingTypes;
 				// For the toilet achievement, there need be only one
 				if (validTypes.Contains(OUTHOUSE_TAG))
 					dupeCount = 1;
@@ -227,7 +226,7 @@ namespace PeterHan.FastTrack.GamePatches {
 	/// <summary>
 	/// Applied to BuildingComplete to check if a building was built outside the start biome.
 	/// </summary>
-	[HarmonyPatch(typeof(BuildingComplete), nameof(BuildingComplete.OnSpawn))]
+	[HarmonyPatch(typeof(BuildingComplete), "OnSpawn")]
 	public static class BuildingComplete_OnSpawn_Patch {
 		internal static bool Prepare() => AchievementPatches.ShouldRun();
 
@@ -317,9 +316,9 @@ namespace PeterHan.FastTrack.GamePatches {
 		/// <summary>
 		/// Applied before Success runs.
 		/// </summary>
-		internal static bool Prefix(CritterTypeExists __instance, ref bool __result) {
+		internal static bool Prefix(CritterTypeExists __instance, List<Tag> ___critterTypes, ref bool __result) {
 			var inst = AchievementPatches.Instance;
-			var types = __instance.critterTypes;
+			var types = ___critterTypes;
 			bool cont = inst == null || types == null;
 			if (!cont) {
 				var hatched = inst.crittersHatched;
@@ -345,14 +344,14 @@ namespace PeterHan.FastTrack.GamePatches {
 		/// <summary>
 		/// Applied before Success runs.
 		/// </summary>
-		internal static bool Prefix(ref bool __result, EatXKCalProducedByY __instance) {
+		internal static bool Prefix(ref bool __result, int ___numCalories, EatXKCalProducedByY __instance) {
 			var inst = AchievementPatches.Instance;
 			// If this is the not-raw achievement
 			bool cont = inst == null || !Db.Get().ColonyAchievements.EatCookedFood.
 				requirementChecklist.Contains(__instance);
 			if (!cont)
 				__result = RationTracker.Get().GetCaloiresConsumedByFood(inst.targetFoods) *
-					0.001f > __instance.numCalories;
+					0.001f > ___numCalories;
 			return cont;
 		}
 	}
@@ -380,7 +379,7 @@ namespace PeterHan.FastTrack.GamePatches {
 	/// Applied to Navigator to track the prefab IDs of anything that hatches or is spawned
 	/// into the world.
 	/// </summary>
-	[HarmonyPatch(typeof(Navigator), nameof(Navigator.OnSpawn))]
+	[HarmonyPatch(typeof(Navigator), "OnSpawn")]
 	public static class Navigator_OnSpawn_Patch {
 		internal static bool Prepare() => AchievementPatches.ShouldRun();
 
@@ -436,13 +435,13 @@ namespace PeterHan.FastTrack.GamePatches {
 		/// <summary>
 		/// Applied before Success runs.
 		/// </summary>
-		internal static bool Prefix(ref bool __result, RevealAsteriod __instance) {
+		internal static bool Prefix(ref bool __result, ref float ___amountRevealed, float ___percentToReveal, RevealAsteriod __instance) {
 			var inst = AchievementPatches.Instance;
 			bool cont = inst == null;
 			if (!cont) {
 				float reveal = (float)inst.tilesRevealed / inst.targetTiles;
-				__instance.amountRevealed = reveal;
-				__result = reveal >= __instance.percentToReveal;
+                ___amountRevealed = reveal;
+				__result = reveal >= ___percentToReveal;
 			}
 			return cont;
 		}
@@ -451,7 +450,7 @@ namespace PeterHan.FastTrack.GamePatches {
 	/// <summary>
 	/// Applied to Tinkerable to record a generator tune-up on completion.
 	/// </summary>
-	[HarmonyPatch(typeof(Tinkerable), nameof(Tinkerable.OnCompleteWork))]
+	[HarmonyPatch(typeof(Tinkerable), "OnCompleteWork")]
 	public static class Tinkerable_OnCompleteWork_Patch {
 		internal static bool Prepare() => AchievementPatches.ShouldRun();
 
@@ -475,19 +474,19 @@ namespace PeterHan.FastTrack.GamePatches {
 		/// <summary>
 		/// Applied before Success runs.
 		/// </summary>
-		internal static bool Prefix(ref bool __result, TuneUpGenerator __instance) {
+		internal static bool Prefix(ref bool __result, ref float ___choresCompleted, float ___numChoreseToComplete, TuneUpGenerator __instance) {
 			var inst = AchievementPatches.Instance;
 			bool cont = inst == null || inst.IsFirstTime(nameof(TuneUpGenerator));
 			if (!cont) {
 				// ___choresCompleted is now initialized
-				int tuneUps = Mathf.RoundToInt(__instance.choresCompleted), last = inst.
+				int tuneUps = Mathf.RoundToInt(___choresCompleted), last = inst.
 					tuneUps;
 				if (last > tuneUps)
 					tuneUps = last;
 				// Take the highest
 				inst.tuneUps = tuneUps;
-				__instance.choresCompleted = tuneUps;
-				__result = tuneUps >= __instance.numChoreseToComplete;
+                ___choresCompleted = tuneUps;
+				__result = tuneUps >= ___numChoreseToComplete;
 			}
 			return cont;
 		}

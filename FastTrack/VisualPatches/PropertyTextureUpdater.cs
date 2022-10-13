@@ -502,7 +502,7 @@ namespace PeterHan.FastTrack.VisualPatches {
 	/// Applied to PropertyTextures to replace LateUpdate with the finishing touches of
 	/// PropertyTextureUpdater.
 	/// </summary>
-	[HarmonyPatch(typeof(PropertyTextures), nameof(PropertyTextures.LateUpdate))]
+	[HarmonyPatch(typeof(PropertyTextures), "LateUpdate")]
 	public static class PropertyTextures_LateUpdate_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.ReduceTileUpdates;
 
@@ -531,16 +531,16 @@ namespace PeterHan.FastTrack.VisualPatches {
 		/// <summary>
 		/// Applied after OnReset runs.
 		/// </summary>
-		internal static void Postfix(PropertyTextures __instance) {
-			PropertyTextureUpdater.Instance?.Init(__instance.allTextureProperties,
-				__instance.externallyUpdatedTextures);
+		internal static void Postfix(PropertyTextures __instance, ref List<PropertyTextures.TextureProperties> ___allTextureProperties, Texture2D[] ___externallyUpdatedTextures) {
+			PropertyTextureUpdater.Instance?.Init(___allTextureProperties,
+                ___externallyUpdatedTextures);
 		}
 	}
 
 	/// <summary>
 	/// Applied to PropertyTextures to initialize our instance with its field values.
 	/// </summary>
-	[HarmonyPatch(typeof(PropertyTextures), nameof(PropertyTextures.OnSpawn))]
+	[HarmonyPatch(typeof(PropertyTextures), "OnSpawn")]
 	public static class PropertyTextures_OnSpawn_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.ReduceTileUpdates;
 
@@ -577,11 +577,11 @@ namespace PeterHan.FastTrack.VisualPatches {
 		public bool UpdateExternally { get; }
 
 		public TextureProperties(ref PropertyTextures.TextureProperties kProps) {
-			PropertyName = kProps.texturePropertyName;
-			PropertyIndex = kProps.simProperty;
-			UpdateEveryFrame = kProps.updateEveryFrame;
-			UpdateExternally = kProps.updatedExternally;
-		}
+			PropertyName = (string)kProps.GetType().GetField("texturePropertyName", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(kProps);
+			PropertyIndex = (PropertyTextures.Property)kProps.GetType().GetField("simProperty", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(kProps);
+            UpdateEveryFrame = (bool)kProps.GetType().GetField("updateEveryFrame", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(kProps);
+            UpdateExternally = (bool)kProps.GetType().GetField("updatedExternally", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(kProps);
+        }
 
 		public override string ToString() {
 			return "TextureProperties[PropertyName={0}]".F(PropertyName);

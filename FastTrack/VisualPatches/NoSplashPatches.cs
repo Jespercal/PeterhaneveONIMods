@@ -75,7 +75,7 @@ namespace PeterHan.FastTrack.VisualPatches {
 	/// <summary>
 	/// Applied to FallingWater to turn off the splash sounds.
 	/// </summary>
-	[HarmonyPatch(typeof(FallingWater), nameof(FallingWater.AddToSim))]
+	[HarmonyPatch(typeof(FallingWater), "AddToSim")]
 	public static class FallingWater_AddToSim_Patch {
 		/// <summary>
 		/// The target method to replace for this patch.
@@ -128,7 +128,7 @@ namespace PeterHan.FastTrack.VisualPatches {
 	/// <summary>
 	/// Applied to FallingWater to turn off mist effects.
 	/// </summary>
-	[HarmonyPatch(typeof(FallingWater), nameof(FallingWater.SpawnLiquidTopDecor))]
+	[HarmonyPatch(typeof(FallingWater), "SpawnLiquidTopDecor")]
 	public static class FallingWater_SpawnLiquidTopDecor_Patch {
 		internal static bool Prepare() => FastTrackOptions.Instance.NoSplash;
 
